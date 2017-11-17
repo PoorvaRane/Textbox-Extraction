@@ -199,7 +199,7 @@ training_data = pickle.load(open('training_data.pkl','r'))
 
 # In[502]:
 
-np.count_nonzero(training_data[:,1])
+# np.count_nonzero(training_data[:,1])
 
 
 # In[506]:
