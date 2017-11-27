@@ -89,6 +89,14 @@ def SLIC(num):
         Regions.append(r)
     masks = np.array(masks)
     Regions = np.array(Regions)
+
+    fig = plt.figure("Superpixels -- %d segments" % (500))
+    ax = fig.add_subplot(1, 1, 1)
+    ax.imshow(mark_boundaries(image, segments))
+    plt.axis("off")
+     
+    # show the plots
+    plt.show()
     return masks, Regions, segments
 
 
@@ -124,15 +132,15 @@ def get_images_borders(Regions, total_rows, k, total_cols):
 #     all_coordinates = np.array(all_coordinates)
     input_images = np.array(input_images)
     
-    input_images_f = []
-    all_coordinates_f = []
-    # Remove all zero images
-    for j in range(len(input_images)):
-        if not (input_images[j]==0).all():
-            input_images_f.append(input_images[j])
-            all_coordinates_f.append(all_coordinates[j])
-            all_coordinates_extened.extend(all_coordinates[j])
-    return input_images_f, all_coordinates_f, all_coordinates_extened
+    # input_images_f = []
+    # all_coordinates_f = []
+    # # Remove all zero images
+    # for j in range(len(input_images)):
+    #     if not (input_images[j]==0).all():
+    #         input_images_f.append(input_images[j])
+    #         all_coordinates_f.append(all_coordinates[j])
+    #         all_coordinates_extened.extend(all_coordinates[j])
+    return input_images, all_coordinates
 
 
 # In[495]:
@@ -167,7 +175,7 @@ Calling Functions
 '''
 image = read_image("d-006.jpg") # Read Image
 
-masks, Regions, segments = SLIC(1000) # Perform SLIC into 1000 segments
+masks, Regions, segments = SLIC(500) # Perform SLIC into 1000 segments
 
 # view_segments(image, segments) # To Plot segments
 
@@ -179,9 +187,11 @@ total_rows = Regions.shape[1]
 
 total_columns = Regions.shape[2]
 
-input_images, all_coordinates, all_coordinates_extened = get_images_borders(Regions, total_rows, k, total_columns)
+input_images, all_coordinates = get_images_borders(Regions, total_rows, k, total_columns)
 
 training_data = make_training_data(input_images, all_coordinates, xy_append)
+
+print Regions.shape
 
 
 # In[500]:
@@ -204,9 +214,9 @@ training_data = pickle.load(open('training_data.pkl','r'))
 
 # In[506]:
 
-f, axarr = plt.subplots(10, 10)
-for i in range(100):
-    axarr[i/10,i%10].imshow(input_images[i+30], interpolation='bilinear', cmap='gray')
+f, axarr = plt.subplots(5, 5)
+for i in range(25):
+    axarr[i/5,i%5].imshow(input_images[i+4], interpolation='bilinear', cmap='gray')
 plt.show()
 
 
