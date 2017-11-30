@@ -1,5 +1,6 @@
 from __future__ import print_function
 import torch
+import os
 import numpy as np
 from torch.autograd import Variable
 import torch.nn as nn
@@ -24,6 +25,7 @@ training_data = pickle.load(open('train_data_new.pkl','r'))
 
 training_data = np.array(training_data)
 np.random.shuffle(training_data)
+print(len(training_data))
 
 
 # In[4]:
@@ -46,6 +48,8 @@ Get Test data
 test_data = pickle.load(open('test_data_new.pkl','r'))
 
 test_data = np.array(test_data)
+np.random.shuffle(training_data)
+print(len(test_data))
 
 
 # In[6]:
@@ -60,7 +64,7 @@ class Net(nn.Module):
         FC_1_DIM = 100
         # 1 input image channel 10x10, 4 output channels, 3x3 square convolution
         self.conv1 = nn.Conv2d(1, CONV_1_NUM, CONV_1_DIM)
-#         self.dropout = nn.Dropout(0.2)
+        self.dropout = nn.Dropout(0.2)
         # an affine operation: y = Wx + b
         # self.fc1 = nn.Linear(4 * 8 * 8, 100)
         CONV1_H_DIM = ((INPUT_H_DIM - CONV_1_DIM)/stride) + 1
@@ -72,7 +76,7 @@ class Net(nn.Module):
     def forward(self, x):
         x = F.relu(self.conv1(x))
         x = x.view(-1, self.num_flat_features(x))
-#         x = self.dropout(x)
+        x = self.dropout(x)
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         out = self.sigmoid(x)
@@ -107,7 +111,7 @@ def validation_function(validloader, net, optimizer, criterion):
         inputs, labels = data
 
         # wrap them in Variable
-        inputs, labels_var = Variable(inputs.unsqueeze(0).float(), volatile=True), Variable(labels.float(), volatile=True)
+        inputs, labels_var = Variable(inputs.unsqueeze(0).float(), volatile=False), Variable(labels.float(), volatile=False)
 
         outputs = net(inputs)
         loss = criterion(outputs, labels_var.unsqueeze(-1))
@@ -120,9 +124,9 @@ def validation_function(validloader, net, optimizer, criterion):
         correct += (predicted.long() == labels).sum()
     
     print_loss = running_loss/float(i+1)
-    print_acc = 100 * correct / float(total)
+    print_acc = 100 * correct/total
     print("*****validation*** running_loss = ", print_loss)
-    print('Accuracy of the network on the 1728 validation images: %d %%' % (print_acc))
+    print('Accuracy of the network on the validation images: %d %%' % (print_acc))
     
     return print_loss, print_acc
     
@@ -130,7 +134,7 @@ def validation_function(validloader, net, optimizer, criterion):
 
 # In[11]:
 
-def test_function(testloader, net, optimizer, criterion):
+def test_function(testloader, net, criterion):
     running_loss = 0.0
     correct = 0
     total = 0
@@ -142,7 +146,7 @@ def test_function(testloader, net, optimizer, criterion):
 
         # wrap them in Variable
 #         inputs, labels_var = Variable(inputs.unsqueeze(0).float()), Variable(labels.long())
-        inputs, labels_var = Variable(inputs.unsqueeze(0).float()), Variable(labels.float())
+        inputs, labels_var = Variable(inputs.unsqueeze(0).float(), volatile=False), Variable(labels.float(), volatile=False)
 
         outputs = net(inputs)
 #         loss = criterion(outputs, labels_var)
@@ -156,9 +160,12 @@ def test_function(testloader, net, optimizer, criterion):
         total += labels.size(0)
         correct += (predicted.long() == labels).sum()
     
-    print("******test*** running_loss = ",running_loss/float(i+1))
-    print('Accuracy of the network on the 10368 test images: %d %%' % (100 * correct / float(total)))
-    return predicted_list
+    print_loss = running_loss/float(i+1)
+    print_acc = 100 * correct/total
+    print("******test*** running_loss = ", print_loss)
+    print('Accuracy of the network on the test images: %d %%' % (print_acc))
+    
+    return print_loss, print_acc
     
 
 
@@ -194,7 +201,7 @@ def train_function(trainloader, net, optimizer, criterion):
         correct += (predicted.long() == labels).sum()
         
     print_loss = running_loss/float(i+1)
-    print_acc = 100 * correct / float(total)
+    print_acc = 100 * correct/total
     print("******train*** running_loss = ", print_loss)
     print('Accuracy of the network on train images: %d %%' % (print_acc))
     
@@ -204,7 +211,7 @@ def train_function(trainloader, net, optimizer, criterion):
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, 'model_best.pth.tar')
+        shutil.copyfile(filename, 'model_best_vf.pth.tar')
 
 
 # Declaration
@@ -214,66 +221,101 @@ INPUT_H_DIM = INPUT_IMAGE_DIM[0]
 INPUT_W_DIM = INPUT_IMAGE_DIM[1]
 
 
-# Training Phase
-net = Net(INPUT_H_DIM, INPUT_W_DIM)
-# print(net)
-# criterion =  nn.NLLLoss() #nn.CrossEntropyLoss()
+# # Training Phase
+# net = Net(INPUT_H_DIM, INPUT_W_DIM)
+# # print(net)
+# # criterion =  nn.NLLLoss() #nn.CrossEntropyLoss()
+# criterion =  nn.BCELoss()
+# # optimizer = optim.Adam(net.parameters(), lr=0.001)
+# optimizer = optim.SGD(net.parameters(), lr=0.001)
+# optimizer.zero_grad()
+
+# train_loss_list = []
+# valid_loss_list = []
+# test_loss_list = []
+# train_acc_list = []
+# valid_acc_list = []
+# test_acc_list = []
+
+# NUM_EPOCHS = 50
+# best_valid_acc = 0
+# best_loss = 999
+
+# for epoch in range(NUM_EPOCHS):  # loop over the dataset multiple times
+#     train_loss, train_acc = train_function(trainloader, net, optimizer, criterion)
+#     valid_loss, valid_acc = validation_function(validloader, net, optimizer, criterion)
+#     test_loss, test_acc = test_function(testloader, net, criterion)
+#     # Save model if it has better accuracy
+#     is_best = valid_acc > best_valid_acc
+#     if valid_acc == best_valid_acc and best_loss > valid_loss:
+#         is_best = True
+#     best_valid_acc = max(valid_acc, best_valid_acc)
+#     save_checkpoint({
+#         'epoch': epoch + 1,
+#         'state_dict': net.state_dict(),
+#         'best_acc': best_valid_acc,
+#         'optimizer' : optimizer.state_dict(),
+#     }, is_best)
+    
+#     train_acc_list.append(train_acc)
+#     valid_acc_list.append(valid_acc)
+#     test_acc_list.append(test_acc)
+#     train_loss_list.append(train_loss)
+#     valid_loss_list.append(valid_loss)
+#     test_loss_list.append(test_loss)
+    
+# #     predicted_list = test_function(testloader, net, optimizer, criterion)
+#     print("------------------------------------")
+
+# plt.plot(np.arange(1,NUM_EPOCHS + 1), train_acc_list)
+# plt.plot(np.arange(1,NUM_EPOCHS + 1), valid_acc_list)
+# plt.xlabel("Epochs")
+# plt.ylabel("Accuracy")
+# plt.legend(['Train Accuracy', 'Validation Accuracy'], loc='lower right')
+# plt.show()
+
+# plt.plot(np.arange(1,NUM_EPOCHS + 1), train_loss_list)
+# plt.plot(np.arange(1,NUM_EPOCHS + 1), valid_loss_list)
+# plt.xlabel("Epochs")
+# plt.ylabel("Loss")
+# plt.legend(['Train Loss', 'Validation Loss'], loc='upper right')
+# plt.show()
+
+# plt.plot(np.arange(1,NUM_EPOCHS + 1), train_acc_list)
+# plt.plot(np.arange(1,NUM_EPOCHS + 1), valid_acc_list)
+# plt.plot(np.arange(1,NUM_EPOCHS + 1), test_acc_list)
+# plt.xlabel("Epochs")
+# plt.ylabel("Accuracy")
+# plt.legend(['Train Accuracy', 'Validation Accuracy', 'Test Accuracy'], loc='lower right')
+# # plt.show()
+# plt.savefig("Accuracy_" + "Epoch" + str(NUM_EPOCHS))
+
+# plt.plot(np.arange(1,NUM_EPOCHS + 1), train_loss_list)
+# plt.plot(np.arange(1,NUM_EPOCHS + 1), valid_loss_list)
+# plt.plot(np.arange(1,NUM_EPOCHS + 1), test_loss_list)
+# plt.xlabel("Epochs")
+# plt.ylabel("Loss")
+# plt.legend(['Train Loss', 'Validation Loss', 'Test Loss'], loc='upper right')
+# # plt.show()
+# plt.savefig("Loss_" + "Epoch" + str(NUM_EPOCHS))
+
+model = Net(INPUT_H_DIM, INPUT_W_DIM)
 criterion =  nn.BCELoss()
-# optimizer = optim.Adam(net.parameters(), lr=0.001)
-optimizer = optim.SGD(net.parameters(), lr=0.001)
-optimizer.zero_grad()
+# optimizer = optim.SGD(model.parameters(), lr=0.001)
+# optimizer.zero_grad()
 
-train_loss_list = []
-valid_loss_list = []
-train_acc_list = []
-valid_acc_list = []
-NUM_EPOCHS = 25
-best_valid_acc = 0
-
-for epoch in range(NUM_EPOCHS):  # loop over the dataset multiple times
-    train_loss, train_acc = train_function(trainloader, net, optimizer, criterion)
-    valid_loss, valid_acc = validation_function(validloader, net, optimizer, criterion)
-    # Save model if it has better accuracy
-    is_best = valid_acc > best_valid_acc
-    best_valid_acc = max(valid_acc, best_valid_acc)
-    save_checkpoint({
-        'epoch': epoch + 1,
-        'state_dict': net.state_dict(),
-        'best_prec1': best_valid_acc,
-        'optimizer' : optimizer.state_dict(),
-    }, is_best)
-    
-    train_acc_list.append(train_acc)
-    valid_acc_list.append(valid_acc)
-    train_loss_list.append(train_loss)
-    valid_loss_list.append(valid_loss)
-    
-#     predicted_list = test_function(testloader, net, optimizer, criterion)
-    print("------------------------------------")
-
-plt.plot(np.arange(1,NUM_EPOCHS + 1), train_acc_list)
-plt.plot(np.arange(1,NUM_EPOCHS + 1), valid_acc_list)
-plt.xlabel("Epochs")
-plt.ylabel("Accuracy")
-plt.legend(['Train Accuracy', 'Validation Accuracy'], loc='lower right')
-plt.show()
-
-plt.plot(np.arange(1,NUM_EPOCHS + 1), train_loss_list)
-plt.plot(np.arange(1,NUM_EPOCHS + 1), valid_loss_list)
-plt.xlabel("Epochs")
-plt.ylabel("Loss")
-plt.legend(['Train Loss', 'Validation Loss'], loc='upper right')
-plt.show()
-
-
-if os.path.isfile(args.resume):
-    print("=> loading checkpoint '{}'".format(args.resume))
-    checkpoint = torch.load(args.resume)
-    args.start_epoch = checkpoint['epoch']
-    best_prec1 = checkpoint['best_prec1']
+# Load the saved model
+BEST_MODEL = 'model_best_vf.pth.tar'
+if os.path.isfile(BEST_MODEL):
+    print("=> loading checkpoint")
+    checkpoint = torch.load(BEST_MODEL)
+    best_valid_acc = checkpoint['best_acc']
     model.load_state_dict(checkpoint['state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer'])
+    # optimizer.load_state_dict(checkpoint['optimizer'])
     print("=> loaded checkpoint '{}' (epoch {})"
-          .format(args.resume, checkpoint['epoch']))
+          .format(BEST_MODEL, checkpoint['epoch']))
 else:
-    print("=> no checkpoint found at '{}'".format(args.resume))
+    print("=> no checkpoint found at '{}'".format(BEST_MODEL))
+
+print(checkpoint)
+predicted_list = test_function(testloader, model, criterion)
