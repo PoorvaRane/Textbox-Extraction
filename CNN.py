@@ -20,8 +20,8 @@ from PIL import Image
 '''
 Get train data
 '''
-# training_data = pickle.load(open('training_data.pkl','r'))
-training_data = pickle.load(open('train_data_new.pkl','r'))
+training_data = pickle.load(open('train_data.pkl','r'))
+# training_data = pickle.load(open('train_data_new.pkl','r'))
 
 training_data = np.array(training_data)
 np.random.shuffle(training_data)
@@ -33,10 +33,11 @@ print(len(training_data))
 '''
 Get Validation data
 '''
-# validation_data = pickle.load(open('validation_data.pkl','r'))
-validation_data = pickle.load(open('validation_data_new.pkl','r'))
+validation_data = pickle.load(open('validation_data.pkl','r'))
+# validation_data = pickle.load(open('validation_data_new.pkl','r'))
 
 validation_data = np.array(validation_data)
+print(len(validation_data))
 
 
 # In[5]:
@@ -44,8 +45,8 @@ validation_data = np.array(validation_data)
 '''
 Get Test data
 '''
-# test_data = pickle.load(open('test_data.pkl','r'))
-test_data = pickle.load(open('test_data_new.pkl','r'))
+test_data = pickle.load(open('test_data.pkl','r'))
+# test_data = pickle.load(open('test_data_new.pkl','r'))
 
 test_data = np.array(test_data)
 np.random.shuffle(training_data)
@@ -64,7 +65,7 @@ class Net(nn.Module):
         FC_1_DIM = 100
         # 1 input image channel 10x10, 4 output channels, 3x3 square convolution
         self.conv1 = nn.Conv2d(1, CONV_1_NUM, CONV_1_DIM)
-        self.dropout = nn.Dropout(0.2)
+        self.dropout = nn.Dropout(0.20)
         # an affine operation: y = Wx + b
         # self.fc1 = nn.Linear(4 * 8 * 8, 100)
         CONV1_H_DIM = ((INPUT_H_DIM - CONV_1_DIM)/stride) + 1
@@ -111,7 +112,7 @@ def validation_function(validloader, net, optimizer, criterion):
         inputs, labels = data
 
         # wrap them in Variable
-        inputs, labels_var = Variable(inputs.unsqueeze(0).float(), volatile=False), Variable(labels.float(), volatile=False)
+        inputs, labels_var = Variable(inputs.unsqueeze(0).float(), volatile=True), Variable(labels.float(), volatile=True)
 
         outputs = net(inputs)
         loss = criterion(outputs, labels_var.unsqueeze(-1))
@@ -158,6 +159,7 @@ def test_function(testloader, net, criterion):
         predicted = torch.ge(outputs.data, torch.FloatTensor([0.5])) # Because batch size is 1
         predicted_list.append(predicted)
         total += labels.size(0)
+        print(predicted)
         correct += (predicted.long() == labels).sum()
     
     print_loss = running_loss/float(i+1)
@@ -237,7 +239,7 @@ INPUT_W_DIM = INPUT_IMAGE_DIM[1]
 # valid_acc_list = []
 # test_acc_list = []
 
-# NUM_EPOCHS = 50
+# NUM_EPOCHS = 80
 # best_valid_acc = 0
 # best_loss = 999
 

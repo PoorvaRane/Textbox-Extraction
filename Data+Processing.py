@@ -90,13 +90,13 @@ def SLIC(num):
     masks = np.array(masks)
     Regions = np.array(Regions)
 
-    fig = plt.figure("Superpixels -- %d segments" % (500))
-    ax = fig.add_subplot(1, 1, 1)
-    ax.imshow(mark_boundaries(image, segments))
-    plt.axis("off")
+    # fig = plt.figure("Superpixels -- %d segments" % (500))
+    # ax = fig.add_subplot(1, 1, 1)
+    # ax.imshow(mark_boundaries(image, segments))
+    # plt.axis("off")
      
-    # show the plots
-    plt.show()
+    # # show the plots
+    # plt.show()
     return masks, Regions, segments
 
 
@@ -204,7 +204,7 @@ To Dump or load from pickle files
 # pickle_file.close()
 # input_images = pickle.load(open('input_images.pkl','r'))
 # all_coordinates = pickle.load(open('all_coordinates.pkl','r'))
-training_data = pickle.load(open('training_data.pkl','r'))
+# training_data = pickle.load(open('training_data.pkl','r'))
 
 
 # In[502]:
@@ -214,9 +214,9 @@ training_data = pickle.load(open('training_data.pkl','r'))
 
 # In[506]:
 
-f, axarr = plt.subplots(5, 5)
-for i in range(25):
-    axarr[i/5,i%5].imshow(input_images[i+4], interpolation='bilinear', cmap='gray')
+f, axarr = plt.subplots(16, 16)
+for i in range(256):
+    axarr[i/16,i%16].imshow(input_images[i], interpolation='bilinear', cmap='gray')
 plt.show()
 
 
